@@ -1,17 +1,13 @@
-//
-//  appApp.swift
-//  app
-//
-//  Created by User arn on 30/04/2026.
-//
-
 import SwiftUI
 
 @main
-struct appApp: App {
+struct GitWidgetApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra("GitHub PRs", systemImage: "arrow.triangle.pull") {
+            MenuBarView()
         }
+        .menuBarExtraStyle(.menu)
     }
 }
