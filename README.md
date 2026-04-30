@@ -68,27 +68,27 @@ Right-click the desktop → *Edit Widgets* → search for "GitHub PRs" → drag 
 ### With Nix (home-manager)
 
 The flake exports a home-manager module that:
-- builds `GitWidget.app` via Nix and copies it to `~/Applications/`
+- downloads the pre-built `GitWidget.app` from GitHub Releases via Nix (no local Xcode needed)
+- signs it locally with your development certificate (required for App Groups)
 - writes `~/.config/git-widget/config.toml`
 - installs a LaunchAgent to start the app at login
 
-**1. Add the flake input and overlay**
+The binary is content-addressed in the Nix store — reinstalls only happen when the version changes.
+
+**1. Add the flake input**
 
 ```nix
 # flake.nix
 inputs = {
   git-widget.url = "github:albe2669/git-widget";
 };
-
-# Add the overlay so pkgs.git-widget is available
-nixpkgs.overlays = [ inputs.git-widget.overlays.default ];
 ```
 
 **2. Import the module**
 
 ```nix
 # home.nix or equivalent
-{ inputs, pkgs, ... }: {
+{ inputs, ... }: {
   imports = [ inputs.git-widget.homeManagerModules.default ];
 }
 ```
@@ -99,11 +99,9 @@ nixpkgs.overlays = [ inputs.git-widget.overlays.default ];
 programs.git-widget = {
   enable = true;
 
-  # The overlay makes pkgs.git-widget available automatically
-  package = pkgs.git-widget;
-
   # Code signing identity from your login Keychain.
   # App Groups (required for the widget to display data) need a real identity.
+  # Run: security find-identity -v -p codesigning
   signingIdentity = "Apple Development";  # or "Apple Development: Name (TEAMID)"
 
   github = {
@@ -148,9 +146,7 @@ programs.git-widget = {
 home-manager switch --flake .
 ```
 
-`home-manager switch` builds `GitWidget.app` via Nix (requires Xcode to be installed), copies it to `~/Applications/GitWidget.app`, signs it with your certificate, writes the config, and registers the LaunchAgent — all in one step.
-
-> **Note:** The Nix build uses `__noChroot = true` to access Xcode from outside the sandbox. Rebuilds only happen when the source changes; subsequent switches use the cached result.
+`home-manager switch` downloads the pre-built binary from the pinned GitHub release, copies it to `~/Applications/GitWidget.app`, signs it with your certificate, writes the config, and registers the LaunchAgent.
 
 **Signing requirement**
 
@@ -246,6 +242,26 @@ sops.secrets.github-token = {};
 
 programs.git-widget.github.tokenFile = config.sops.secrets.github-token.path;
 ```
+
+---
+
+## Releasing
+
+Releasing is fully automated via GitHub Actions:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The [release workflow](.github/workflows/release.yml) will:
+1. Build an unsigned `GitWidget.app` (arm64) on a `macos-15` runner
+2. Package it as `GitWidget.tar.gz` and create a GitHub Release
+3. Compute the Nix SRI hash and commit an updated `flake.nix` back to `main`
+
+After the workflow completes, users on the home-manager module get the new version automatically the next time they run `nix flake update && home-manager switch`.
+
+You can also trigger a release manually from the [Actions tab](../../actions/workflows/release.yml) without creating a tag.
 
 ---
 
