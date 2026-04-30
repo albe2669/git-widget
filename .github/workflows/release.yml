@@ -66,7 +66,9 @@ jobs:
           echo "sri=$SRI" >> "$GITHUB_OUTPUT"
           echo "Nix SRI hash: $SRI"
 
-      - name: Commit updated flake.nix to main
+      - name: Commit updated flake.nix to default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
           SHA256="${{ steps.hash.outputs.sri }}"
@@ -74,11 +76,11 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # The checkout is in detached HEAD at the tag. Switch to main so the
-          # push diff only ever contains the flake.nix change.
-          git fetch origin main
-          git checkout main
-          git pull --ff-only origin main
+          # The checkout is in detached HEAD at the tag. Switch to the default
+          # branch so the push diff only ever contains the flake.nix change.
+          git fetch origin "$DEFAULT_BRANCH"
+          git checkout "$DEFAULT_BRANCH"
+          git pull --ff-only origin "$DEFAULT_BRANCH"
 
           sed -i '' \
             -e "s/version = \"[^\"]*\";.*# @release/version = \"${VERSION}\"; # @release/" \
@@ -88,7 +90,7 @@ jobs:
           git add flake.nix
           git diff --cached --quiet || \
             git commit -m "chore(flake): release v${VERSION} [skip ci]"
-          git push origin main
+          git push origin "$DEFAULT_BRANCH"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
