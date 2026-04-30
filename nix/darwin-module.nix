@@ -130,8 +130,39 @@ in {
         $DRY_RUN_CMD rm -rf "$_dest"
         $DRY_RUN_CMD cp -r "$_pkg/Applications/GitWidget.app" "$_dest"
         $DRY_RUN_CMD chmod -R u+w "$_dest"
-        $DRY_RUN_CMD /usr/bin/codesign --force --deep \
-          --sign "${cfg.signingIdentity}" "$_dest"
+
+        # The binary ships unsigned (CODE_SIGNING_ALLOWED=NO in CI).
+        # We must supply entitlements explicitly — --deep alone cannot assign
+        # per-bundle entitlements, and omitting them drops the app-group
+        # entitlement that WidgetKit requires to launch the extension.
+        _ent=$(mktemp /tmp/git-widget-ent.XXXX.plist)
+        cat > "$_ent" <<'ENTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.maliciousgoose.git-widget.shared</string>
+  </array>
+</dict>
+</plist>
+ENTEOF
+
+        # Sign inside-out: framework first, then extension, then the app.
+        $DRY_RUN_CMD /usr/bin/codesign --force \
+          --sign "${cfg.signingIdentity}" \
+          "$_dest/Contents/Frameworks/core.framework"
+        $DRY_RUN_CMD /usr/bin/codesign --force \
+          --sign "${cfg.signingIdentity}" \
+          --entitlements "$_ent" \
+          "$_dest/Contents/PlugIns/extensionExtension.appex"
+        $DRY_RUN_CMD /usr/bin/codesign --force \
+          --sign "${cfg.signingIdentity}" \
+          --entitlements "$_ent" \
+          "$_dest"
+        rm -f "$_ent"
+
         if [ -z "''${DRY_RUN_CMD-}" ]; then
           mkdir -p "$_state"
           printf '%s' "$_pkg" > "$_record"
