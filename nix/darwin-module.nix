@@ -38,8 +38,6 @@ let
     ${lib.concatMapStrings repoToml cfg.repositories}
   '';
 
-  configFile = pkgs.writeText "git-widget-config.toml" configContent;
-
 in {
   options.programs.git-widget = {
     enable = lib.mkEnableOption "GitWidget GitHub PR menu-bar app";
@@ -76,7 +74,7 @@ in {
           filter = lib.mkOption {
             type = lib.types.listOf (lib.types.enum [ "all" "opened" "assigned" "assigned-direct" "assigned-group" "none" ]);
             default = [ "assigned" ];
-            description = "One or more filter modes. Results are unioned — e.g. [\"opened\" \"assigned\"] shows PRs you opened or were assigned to.";
+            description = "One or more filter modes — results are unioned.";
           };
           assignedGroup = lib.mkOption {
             type = lib.types.nullOr lib.types.str;
@@ -97,23 +95,19 @@ in {
 
     appPath = lib.mkOption {
       type = lib.types.str;
-      default = "$HOME/Applications/app.app";
-      description = "Path to the installed GitWidget .app bundle (used for the launchd agent).";
+      default = "${config.home.homeDirectory}/Applications/app.app";
+      description = "Path to the installed GitWidget .app bundle.";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Config is written to /etc/git-widget/config.toml.
-    # The app checks ~/.config/git-widget/config.toml first (user override),
-    # then falls back to /etc/git-widget/config.toml.
-    environment.etc."git-widget/config.toml" = {
-      source = configFile;
-      mode = "0444";
-    };
+    # Write config to ~/.config/git-widget/config.toml
+    home.file.".config/git-widget/config.toml".text = configContent;
 
-    # Start the app automatically on login.
-    launchd.user.agents.git-widget = {
-      serviceConfig = {
+    # Start the app automatically on login via a user LaunchAgent
+    launchd.agents.git-widget = {
+      enable = true;
+      config = {
         Label = "com.gitwidget.app";
         ProgramArguments = [ "${cfg.appPath}/Contents/MacOS/app" ];
         RunAtLoad = true;
