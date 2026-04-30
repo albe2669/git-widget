@@ -29,7 +29,11 @@ update_interval = 900
 #
 # Add one [[repositories]] block per repo you want to monitor.
 #
-# filter options:
+# filter is a list of modes — results are unioned (a PR matching any mode is shown).
+# A single mode can be written without brackets: filter = "assigned"
+# Multiple modes: filter = ["opened", "assigned"]
+#
+# Available modes:
 #   all             — all open PRs
 #   opened          — PRs you opened
 #   assigned        — PRs where you are an assignee OR review was requested from you
@@ -40,7 +44,7 @@ update_interval = 900
 [[repositories]]
 owner = "myorg"
 name = "backend"
-filter = "assigned"
+filter = ["opened", "assigned"]   # show PRs you opened OR are assigned to
 
   [repositories.notifications]
   new_pr = true           # notify when any new PR is opened
@@ -51,7 +55,7 @@ filter = "assigned"
 [[repositories]]
 owner = "myorg"
 name = "agents-service"
-filter = "assigned-group"
+filter = ["assigned-group"]
 assigned_group = "agents"  # only show PRs where the 'agents' team was requested
 
   [repositories.notifications]

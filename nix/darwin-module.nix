@@ -5,11 +5,16 @@ let
 
   bool = b: if b then "true" else "false";
 
+  filterToml = filters:
+    if builtins.length filters == 1
+    then "\"${builtins.head filters}\""
+    else "[${lib.concatMapStringsSep ", " (f: "\"${f}\"") filters}]";
+
   repoToml = repo: ''
     [[repositories]]
     owner = "${repo.owner}"
     name = "${repo.name}"
-    filter = "${repo.filter}"
+    filter = ${filterToml repo.filter}
     ${lib.optionalString (repo.assignedGroup != null && repo.assignedGroup != "") "assigned_group = \"${repo.assignedGroup}\""}
 
       [repositories.notifications]
@@ -69,8 +74,9 @@ in {
           owner = lib.mkOption { type = lib.types.str; };
           name  = lib.mkOption { type = lib.types.str; };
           filter = lib.mkOption {
-            type = lib.types.enum [ "all" "opened" "assigned" "assigned-direct" "assigned-group" "none" ];
-            default = "assigned";
+            type = lib.types.listOf (lib.types.enum [ "all" "opened" "assigned" "assigned-direct" "assigned-group" "none" ]);
+            default = [ "assigned" ];
+            description = "One or more filter modes. Results are unioned — e.g. [\"opened\" \"assigned\"] shows PRs you opened or were assigned to.";
           };
           assignedGroup = lib.mkOption {
             type = lib.types.nullOr lib.types.str;

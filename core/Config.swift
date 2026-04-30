@@ -81,7 +81,7 @@ public struct ConfigLoader {
                 switch key {
                 case "owner":          currentRepo?.owner = parseStr(rawVal) ?? ""
                 case "name":           currentRepo?.name = parseStr(rawVal) ?? ""
-                case "filter":         currentRepo?.filter = FilterMode(rawValue: parseStr(rawVal) ?? "") ?? .assigned
+                case "filter":         currentRepo?.filters = parseFilterList(rawVal)
                 case "assigned_group": currentRepo?.assignedGroup = parseStr(rawVal)
                 default: break
                 }
@@ -123,6 +123,21 @@ public struct ConfigLoader {
     private static func parseStr(_ s: String) -> String? {
         guard s.hasPrefix("\"") && s.hasSuffix("\"") && s.count >= 2 else { return nil }
         return String(s.dropFirst().dropLast())
+    }
+
+    // Accepts both single string ("assigned") and array (["opened", "assigned"]).
+    private static func parseFilterList(_ s: String) -> [FilterMode] {
+        if s.hasPrefix("[") && s.hasSuffix("]") {
+            let inner = String(s.dropFirst().dropLast())
+            return inner
+                .components(separatedBy: ",")
+                .compactMap { parseStr($0.trimmingCharacters(in: .whitespaces)) }
+                .compactMap { FilterMode(rawValue: $0) }
+        }
+        if let single = parseStr(s), let mode = FilterMode(rawValue: single) {
+            return [mode]
+        }
+        return [.assigned]
     }
 
     private static func parseBool(_ s: String) -> Bool? {

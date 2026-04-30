@@ -13,7 +13,9 @@ public class GitHubGraphQLClient: @unchecked Sendable {
     }
 
     public func fetchAll(config: AppConfig) async throws -> WidgetSnapshot {
-        let activeRepos = config.repositories.filter { $0.filter != .none }
+        let activeRepos = config.repositories.filter { repo in
+            !repo.filters.isEmpty && !repo.filters.allSatisfy { $0 == .none }
+        }
         guard !activeRepos.isEmpty else {
             return WidgetSnapshot(repositories: [], fetchedAt: Date(), viewerLogin: config.github.username ?? "")
         }
@@ -50,7 +52,7 @@ public class GitHubGraphQLClient: @unchecked Sendable {
             repoResults.append(RepoData(owner: repoConfig.owner, name: repoConfig.name, prs: filtered))
         }
 
-        for repoConfig in config.repositories where repoConfig.filter == .none {
+        for repoConfig in config.repositories where repoConfig.filters.allSatisfy({ $0 == .none }) {
             repoResults.append(RepoData(owner: repoConfig.owner, name: repoConfig.name, prs: []))
         }
 
@@ -174,7 +176,20 @@ public class GitHubGraphQLClient: @unchecked Sendable {
 
 public struct PRFilter {
     public static func apply(prs: [PRData], config: RepoConfig, viewerLogin: String) -> [PRData] {
-        switch config.filter {
+        var seen = Set<Int>()
+        var result: [PRData] = []
+        for mode in config.filters {
+            for pr in matching(prs: prs, mode: mode, config: config, viewerLogin: viewerLogin) {
+                if seen.insert(pr.number).inserted {
+                    result.append(pr)
+                }
+            }
+        }
+        return result
+    }
+
+    private static func matching(prs: [PRData], mode: FilterMode, config: RepoConfig, viewerLogin: String) -> [PRData] {
+        switch mode {
         case .all:
             return prs
         case .none:

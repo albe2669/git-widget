@@ -23,20 +23,20 @@ public struct NotificationPrefs: Codable, Sendable {
 public struct RepoConfig: Sendable {
     public var owner: String
     public var name: String
-    public var filter: FilterMode
+    public var filters: [FilterMode]
     public var assignedGroup: String?
     public var notifications: NotificationPrefs
 
     public init(
         owner: String = "",
         name: String = "",
-        filter: FilterMode = .assigned,
+        filters: [FilterMode] = [.assigned],
         assignedGroup: String? = nil,
         notifications: NotificationPrefs = .init()
     ) {
         self.owner = owner
         self.name = name
-        self.filter = filter
+        self.filters = filters
         self.assignedGroup = assignedGroup
         self.notifications = notifications
     }
