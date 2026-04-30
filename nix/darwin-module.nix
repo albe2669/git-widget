@@ -126,8 +126,10 @@ in {
 
       if [ "$_needs_install" -eq 1 ]; then
         echo "GitWidget: installing from $_pkg"
+        $DRY_RUN_CMD chmod -R u+w "$_dest" 2>/dev/null || true
         $DRY_RUN_CMD rm -rf "$_dest"
         $DRY_RUN_CMD cp -r "$_pkg/Applications/GitWidget.app" "$_dest"
+        $DRY_RUN_CMD chmod -R u+w "$_dest"
         $DRY_RUN_CMD /usr/bin/codesign --force --deep \
           --sign "${cfg.signingIdentity}" "$_dest"
         if [ -z "''${DRY_RUN_CMD-}" ]; then
