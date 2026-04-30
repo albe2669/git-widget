@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g. 1.0.0)'
+        description: "Version (e.g. 1.0.0)"
         required: true
 
 jobs:
@@ -82,7 +82,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add flake.nix
           git diff --cached --quiet || \
-            git commit -m "chore: release v${{ steps.ver.outputs.version }} [skip ci]"
+            git commit -m "chore(flake): release v${{ steps.ver.outputs.version }} [skip ci]"
           git push origin HEAD:refs/heads/main
 
       - name: Create GitHub Release
