@@ -83,7 +83,7 @@ jobs:
           git add flake.nix
           git diff --cached --quiet || \
             git commit -m "chore: release v${{ steps.ver.outputs.version }} [skip ci]"
-          git push origin HEAD:main
+          git push origin HEAD:refs/heads/main
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
