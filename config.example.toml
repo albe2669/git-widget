@@ -1,0 +1,61 @@
+# GitWidget Configuration
+# Copy to: ~/.config/git-widget/config.toml
+#
+# The app checks these locations (first found wins):
+#   1. ~/.config/git-widget/config.toml
+#   2. /etc/git-widget/config.toml  (managed by nix-darwin module)
+
+[github]
+# Authentication: set either 'token' or 'token_file', not both.
+# 'token_file' takes precedence and is recommended for secret managers (e.g. sops-nix).
+
+# token = "ghp_YOUR_PERSONAL_ACCESS_TOKEN"
+# Required scopes: repo, read:org
+
+# token_file = "/run/secrets/github-token"
+# The file should contain only the token, with optional trailing newline.
+# With sops-nix: token_file = config.sops.secrets.github-token.path
+
+# GitHub username (optional — defaults to the account that owns the token)
+# username = "myusername"
+
+# How often to poll GitHub, in seconds.
+# WidgetKit has a refresh budget (~40–70/day), so values below 900 have
+# diminishing returns for the widget display. The background app polls at
+# this interval regardless.
+update_interval = 900
+
+# ─── Repositories ─────────────────────────────────────────────────────────────
+#
+# Add one [[repositories]] block per repo you want to monitor.
+#
+# filter options:
+#   all             — all open PRs
+#   opened          — PRs you opened
+#   assigned        — PRs where you are an assignee OR review was requested from you
+#   assigned-direct — PRs where review was explicitly requested from YOU (not via a team)
+#   assigned-group  — PRs where review was requested from a specific team (set assigned_group)
+#   none            — hide this repo entirely (useful for temporary suppression)
+
+[[repositories]]
+owner = "myorg"
+name = "backend"
+filter = "assigned"
+
+  [repositories.notifications]
+  new_pr = true           # notify when any new PR is opened
+  assigned = true         # notify when you are assigned / review is requested
+  review_requested = true # notify when review is explicitly requested from you
+  ci_failed = false       # notify when CI status changes to failure
+
+[[repositories]]
+owner = "myorg"
+name = "agents-service"
+filter = "assigned-group"
+assigned_group = "agents"  # only show PRs where the 'agents' team was requested
+
+  [repositories.notifications]
+  new_pr = false
+  assigned = true
+  review_requested = true
+  ci_failed = true
