@@ -29,8 +29,8 @@ install: build-release
         -configuration Release -destination 'platform=macOS' \
         -showBuildSettings 2>/dev/null | grep '^\s*BUILT_PRODUCTS_DIR' | awk '{print $3}')
     mkdir -p "{{apps_dir}}"
-    cp -Rf "$BUILD_DIR/app.app" "{{apps_dir}}/"
-    echo "Installed to {{apps_dir}}/app.app"
+    cp -Rf "$BUILD_DIR/GitWidget.app" "{{apps_dir}}/"
+    echo "Installed to {{apps_dir}}/GitWidget.app"
 
 # Lint with SwiftLint
 lint:

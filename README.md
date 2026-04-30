@@ -49,7 +49,7 @@ just install
 # or manually: just install
 ```
 
-This copies `app.app` to `~/Applications/`. Launch it from there — the app lives in the menu bar (no Dock icon).
+This copies `GitWidget.app` to `~/Applications/`. Launch it from there — the app lives in the menu bar (no Dock icon).
 
 **4. Create your config**
 
@@ -67,22 +67,28 @@ Right-click the desktop → *Edit Widgets* → search for "GitHub PRs" → drag 
 
 ### With Nix (home-manager)
 
-The flake exports a home-manager module that writes `~/.config/git-widget/config.toml` and installs a `~/Library/LaunchAgents/` entry to start the app at login.
+The flake exports a home-manager module that:
+- builds `GitWidget.app` via Nix and copies it to `~/Applications/`
+- writes `~/.config/git-widget/config.toml`
+- installs a LaunchAgent to start the app at login
 
-**1. Add the flake input**
+**1. Add the flake input and overlay**
 
 ```nix
 # flake.nix
 inputs = {
   git-widget.url = "github:albe2669/git-widget";
 };
+
+# Add the overlay so pkgs.git-widget is available
+nixpkgs.overlays = [ inputs.git-widget.overlays.default ];
 ```
 
 **2. Import the module**
 
 ```nix
 # home.nix or equivalent
-{ inputs, ... }: {
+{ inputs, pkgs, ... }: {
   imports = [ inputs.git-widget.homeManagerModules.default ];
 }
 ```
@@ -92,6 +98,13 @@ inputs = {
 ```nix
 programs.git-widget = {
   enable = true;
+
+  # The overlay makes pkgs.git-widget available automatically
+  package = pkgs.git-widget;
+
+  # Code signing identity from your login Keychain.
+  # App Groups (required for the widget to display data) need a real identity.
+  signingIdentity = "Apple Development";  # or "Apple Development: Name (TEAMID)"
 
   github = {
     # Use tokenFile for secrets (recommended with sops-nix):
@@ -126,9 +139,6 @@ programs.git-widget = {
       };
     }
   ];
-
-  # Path to the installed .app (default: ~/Applications/app.app)
-  # appPath = "${config.home.homeDirectory}/Applications/app.app";
 };
 ```
 
@@ -138,16 +148,13 @@ programs.git-widget = {
 home-manager switch --flake .
 ```
 
-The module writes your config to `~/.config/git-widget/config.toml` and installs a LaunchAgent that starts the app automatically on login.
+`home-manager switch` builds `GitWidget.app` via Nix (requires Xcode to be installed), copies it to `~/Applications/GitWidget.app`, signs it with your certificate, writes the config, and registers the LaunchAgent — all in one step.
 
-**5. Build and install the app**
+> **Note:** The Nix build uses `__noChroot = true` to access Xcode from outside the sandbox. Rebuilds only happen when the source changes; subsequent switches use the cached result.
 
-Nix doesn't build Xcode projects, so install the `.app` manually once:
+**Signing requirement**
 
-```sh
-cd /path/to/git-widget
-just install    # builds Release and copies to ~/Applications/
-```
+App Groups (used to share data between the menu-bar app and the widget extension) require a real code signing identity. Run `security find-identity -v -p codesigning` to list available identities and pick the right one for `signingIdentity`.
 
 ---
 
@@ -332,7 +339,7 @@ The App Group (`group.maliciousgoose.git-widget.shared`) is what allows the app 
 ## Troubleshooting
 
 **Widget shows "Waiting for data…"**
-The app hasn't written a snapshot yet. Make sure `app.app` is running (check the menu bar for the arrow icon). Check `/tmp/git-widget.log` for errors.
+The app hasn't written a snapshot yet. Make sure `GitWidget.app` is running (check the menu bar for the arrow icon). Check `/tmp/git-widget.log` for errors.
 
 **App Group container is unavailable**
 Signing is not set up correctly. Open Xcode → set your development team on all three targets → rebuild.
