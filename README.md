@@ -27,7 +27,96 @@ A macOS 26 (Tahoe) menu-bar app and desktop widget that shows your GitHub pull r
 
 ## Installation
 
-### Without Nix
+### From a pre-built release (no Xcode, no Nix)
+
+**Prerequisites:** Xcode Command Line Tools (`xcode-select --install`) and a free [Apple Developer account](https://developer.apple.com) — required so the menu-bar app and widget extension can share data via a signed App Group.
+
+**1. Download and extract**
+
+Download `GitWidget.tar.gz` from the [latest release](../../releases/latest) and extract it to `~/Applications/`:
+
+```sh
+mkdir -p ~/Applications
+tar -xzf GitWidget.tar.gz -C ~/Applications/
+```
+
+**2. Find your signing identity**
+
+```sh
+security find-identity -v -p codesigning
+```
+
+Copy the identity string you want to use, e.g. `Apple Development: Your Name (TEAMID)`.
+
+**3. Sign the app**
+
+The release binary is unsigned. You must sign it with your own certificate, providing explicit entitlements for each bundle component:
+
+```sh
+# Extension entitlements (sandboxed — required by WidgetKit)
+cat > /tmp/gw-ext-ent.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.maliciousgoose.git-widget.shared</string>
+  </array>
+</dict>
+</plist>
+EOF
+
+# App entitlements (not sandboxed — needs file system and network access)
+cat > /tmp/gw-app-ent.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.maliciousgoose.git-widget.shared</string>
+  </array>
+</dict>
+</plist>
+EOF
+
+IDENTITY="Apple Development"  # replace with your identity string from step 2
+
+# Sign inside-out: framework → extension → app
+codesign --force --sign "$IDENTITY" \
+  ~/Applications/GitWidget.app/Contents/Frameworks/core.framework
+codesign --force --sign "$IDENTITY" --entitlements /tmp/gw-ext-ent.plist \
+  ~/Applications/GitWidget.app/Contents/PlugIns/extensionExtension.appex
+codesign --force --sign "$IDENTITY" --entitlements /tmp/gw-app-ent.plist \
+  ~/Applications/GitWidget.app
+```
+
+**4. Create your config**
+
+```sh
+mkdir -p ~/.config/git-widget
+cp /path/to/config.example.toml ~/.config/git-widget/config.toml
+# Edit with your token and repositories — see the Configuration section below
+```
+
+**5. Launch**
+
+```sh
+open ~/Applications/GitWidget.app
+```
+
+The app lives in the menu bar (no Dock icon). To start it automatically at login, add it in *System Settings → General → Login Items*.
+
+**6. Add the widget to your desktop**
+
+Right-click the desktop → *Edit Widgets* → search for "GitHub PRs" → drag to the desktop.
+
+---
+
+### Build from source (no Nix)
 
 **1. Clone and open the project**
 
