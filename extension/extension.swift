@@ -17,7 +17,7 @@ struct GitPRWidget: Widget {
 
 struct PRWidgetEntryView: View {
     let entry: PREntry
-    @Environment(\.widgetFamily) var family
+    @Environment(\.colorScheme) var colorScheme
     var background: Color {
         colorScheme == .dark
             ? Color(.sRGB, white: 0.13, opacity: 1)
