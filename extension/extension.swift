@@ -67,11 +67,9 @@ struct PRListView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
             } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(activeRepos, id: \.displayName) { repo in
-                            RepoSectionView(repo: repo)
-                        }
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(activeRepos, id: \.displayName) { repo in
+                        RepoSectionView(repo: repo)
                     }
                 }
             }
