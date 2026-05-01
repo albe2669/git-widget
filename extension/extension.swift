@@ -25,12 +25,14 @@ struct PRWidgetEntryView: View {
     }
 
     var body: some View {
-        if let error = entry.snapshot?.errorMessage {
-            ErrorView(message: error)
-        } else if let snapshot = entry.snapshot {
-            PRListView(snapshot: snapshot, family: family)
-        } else {
-            PlaceholderView()
+        Group {
+            if let error = entry.snapshot?.errorMessage {
+                ErrorView(message: error)
+            } else if let snapshot = entry.snapshot {
+                PRListView(snapshot: snapshot)
+            } else {
+                PlaceholderView()
+            }
         }
         .containerBackground(background, for: .widget)
     }
@@ -38,18 +40,9 @@ struct PRWidgetEntryView: View {
 
 struct PRListView: View {
     let snapshot: WidgetSnapshot
-    let family: WidgetFamily
 
     var activeRepos: [RepoData] {
         snapshot.repositories.filter { !$0.prs.isEmpty }
-    }
-
-    var prsPerRepo: Int {
-        switch family {
-        case .systemMedium: return 2
-        case .systemLarge: return 4
-        default: return 6
-        }
     }
 
     var body: some View {
@@ -74,12 +67,14 @@ struct PRListView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
             } else {
-                ForEach(activeRepos, id: \.displayName) { repo in
-                    RepoSectionView(repo: repo, prsPerRepo: prsPerRepo)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(activeRepos, id: \.displayName) { repo in
+                            RepoSectionView(repo: repo)
+                        }
+                    }
                 }
             }
-
-            Spacer(minLength: 0)
         }
         .padding(12)
     }
@@ -87,7 +82,6 @@ struct PRListView: View {
 
 struct RepoSectionView: View {
     let repo: RepoData
-    let prsPerRepo: Int
 
     var sortedPRs: [PRData] {
         repo.prs.sorted { priority($0) > priority($1) }
@@ -112,15 +106,8 @@ struct RepoSectionView: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 3)
 
-            ForEach(Array(sortedPRs.prefix(prsPerRepo))) { pr in
+            ForEach(sortedPRs) { pr in
                 PRRowView(pr: pr)
-            }
-
-            if repo.prs.count > prsPerRepo {
-                Text("+\(repo.prs.count - prsPerRepo) more")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .padding(.leading, 12)
             }
         }
     }
