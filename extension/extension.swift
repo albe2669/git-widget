@@ -8,7 +8,6 @@ struct GitPRWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PRTimelineProvider()) { entry in
             PRWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("GitHub PRs")
         .description("Shows open pull requests from your configured repositories.")
@@ -19,6 +18,11 @@ struct GitPRWidget: Widget {
 struct PRWidgetEntryView: View {
     let entry: PREntry
     @Environment(\.widgetFamily) var family
+    var background: Color {
+        colorScheme == .dark
+            ? Color(.sRGB, white: 0.13, opacity: 1)
+            : Color(.sRGB, white: 0.97, opacity: 1)
+    }
 
     var body: some View {
         if let error = entry.snapshot?.errorMessage {
@@ -28,6 +32,7 @@ struct PRWidgetEntryView: View {
         } else {
             PlaceholderView()
         }
+        .containerBackground(background, for: .widget)
     }
 }
 
