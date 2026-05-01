@@ -73,6 +73,8 @@ struct PRListView: View {
                     }
                 }
             }
+
+            Spacer(minLength: 0)
         }
         .padding(12)
     }
