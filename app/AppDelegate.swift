@@ -8,4 +8,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             await BackgroundPoller.shared.start()
         }
     }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            NSWorkspace.shared.open(url)
+        }
+    }
 }
