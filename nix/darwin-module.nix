@@ -133,16 +133,30 @@ in {
 
         # The binary ships unsigned (CODE_SIGNING_ALLOWED=NO in CI).
         # We must supply entitlements explicitly — --deep alone cannot assign
-        # per-bundle entitlements, and omitting them drops the app-group
-        # entitlement that WidgetKit requires to launch the extension.
-        _ent=$(mktemp /tmp/git-widget-ent.XXXX.plist)
-        cat > "$_ent" <<'ENTEOF'
+        # per-bundle entitlements, and omitting them drops entitlements entirely.
+        # The extension must be sandboxed (pluginkit requirement) but the main
+        # app must NOT be sandboxed — it reads ~/.config and makes network calls.
+        _ext_ent=$(mktemp /tmp/git-widget-ext-ent.XXXX.plist)
+        _app_ent=$(mktemp /tmp/git-widget-app-ent.XXXX.plist)
+        cat > "$_ext_ent" <<'ENTEOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>com.apple.security.app-sandbox</key>
   <true/>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.maliciousgoose.git-widget.shared</string>
+  </array>
+</dict>
+</plist>
+ENTEOF
+        cat > "$_app_ent" <<'ENTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
   <key>com.apple.security.application-groups</key>
   <array>
     <string>group.maliciousgoose.git-widget.shared</string>
@@ -157,13 +171,13 @@ ENTEOF
           "$_dest/Contents/Frameworks/core.framework"
         $DRY_RUN_CMD /usr/bin/codesign --force \
           --sign "${cfg.signingIdentity}" \
-          --entitlements "$_ent" \
+          --entitlements "$_ext_ent" \
           "$_dest/Contents/PlugIns/extensionExtension.appex"
         $DRY_RUN_CMD /usr/bin/codesign --force \
           --sign "${cfg.signingIdentity}" \
-          --entitlements "$_ent" \
+          --entitlements "$_app_ent" \
           "$_dest"
-        rm -f "$_ent"
+        rm -f "$_ext_ent" "$_app_ent"
 
         if [ -z "''${DRY_RUN_CMD-}" ]; then
           mkdir -p "$_state"
