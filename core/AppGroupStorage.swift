@@ -1,12 +1,13 @@
 import Foundation
 
 public let appGroupID = "group.maliciousgoose.git-widget.shared"
+public let extensionBundleID = "maliciousgoose.git-widget.extension"
 
 public enum AppGroupError: Error, LocalizedError {
     case containerUnavailable
 
     public var errorDescription: String? {
-        "App Group container unavailable. Check entitlements and signing."
+        "Widget snapshot container unavailable."
     }
 }
 
@@ -17,7 +18,13 @@ public struct AppGroupStorage {
     }
 
     private static var snapshotURL: URL? {
-        containerURL?.appendingPathComponent("widget-snapshot.json")
+        if Bundle.main.bundleIdentifier == extensionBundleID {
+            return FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)
+                .first?.appendingPathComponent("widget-snapshot.json")
+        } else {
+            return FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Containers/\(extensionBundleID)/Data/Library/widget-snapshot.json")
+        }
     }
 
     public static func save(_ snapshot: WidgetSnapshot) throws {
