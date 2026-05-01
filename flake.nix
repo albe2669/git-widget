@@ -5,8 +5,8 @@
 
   outputs = { self, nixpkgs }:
     let
-      version = "0.0.6"; # @release
-      sha256  = "sha256-kAKd+xedobjai/Ntr3u6qOfHChQdW/40b2U/w+rDAR8="; # @release
+      version = "0.0.7"; # @release
+      sha256  = "sha256-OlygXx7Dv/h8o1yIM3apogWR2pcAD1yrTfNtQdHB6IM="; # @release
 
       pkgs    = nixpkgs.legacyPackages.aarch64-darwin;
       package = pkgs.callPackage ./nix/package.nix { inherit version sha256; };
